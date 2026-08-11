@@ -1,0 +1,133 @@
+import { useState } from "react";
+
+import RolesPage from "./RolesPage";
+import PermissionsPage from "./PermissionsPage";
+import RolePermissionsPage from "./RolePermissionsPage";
+
+function RolesPermissionsPage() {
+  const [activeTab, setActiveTab] = useState("roles");
+
+  const tabs = [
+    { key: "roles", label: "Roller" },
+    { key: "permissions", label: "Yetkiler" },
+    { key: "rolePermissions", label: "Rol-Yetki" },
+  ];
+
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case "roles":
+        return <RolesPage embedded />;
+
+      case "permissions":
+        return <PermissionsPage embedded />;
+
+      case "rolePermissions":
+        return <RolePermissionsPage embedded />;
+
+      default:
+        return <RolesPage embedded />;
+    }
+  };
+
+  return (
+    <div style={pageStyles.page}>
+      <div style={pageStyles.header}>
+        <h1 style={pageStyles.title}>Roller ve Yetkiler</h1>
+
+        <p style={pageStyles.subtitle}>
+          Rol, yetki ve rol-yetki ilişkilerini tek ekrandan yönetin.
+        </p>
+      </div>
+
+      <div style={pageStyles.tabBar}>
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.key;
+
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              style={{
+                ...pageStyles.tabButton,
+                ...(isActive ? pageStyles.activeTabButton : {}),
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={pageStyles.content}>
+        {renderActiveTab()}
+      </div>
+    </div>
+  );
+}
+
+const pageStyles = {
+  page: {
+    width: "100%",
+    color: "#ffffff",
+  },
+
+  header: {
+    marginBottom: 12,
+    textAlign: "left",
+  },
+
+  title: {
+    margin: 0,
+    color: "#ffffff",
+    fontSize: 27,
+    fontWeight: 900,
+    letterSpacing: "-0.7px",
+  },
+
+  subtitle: {
+    margin: "5px 0 0",
+    color: "#9fb0cc",
+    fontSize: 11,
+    fontWeight: 600,
+  },
+
+  tabBar: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 14,
+    padding: 6,
+    borderRadius: 12,
+    background: "rgba(8,18,55,0.58)",
+    border: "1px solid rgba(96,165,250,0.14)",
+    width: "fit-content",
+  },
+
+  tabButton: {
+    minWidth: 105,
+    minHeight: 34,
+    padding: "8px 13px",
+    borderRadius: 8,
+    border: "1px solid transparent",
+    background: "transparent",
+    color: "#94a3b8",
+    cursor: "pointer",
+    fontSize: 12,
+    fontWeight: 800,
+    transition: "all 0.2s ease",
+  },
+
+  activeTabButton: {
+    background: "rgba(37,99,235,0.25)",
+    border: "1px solid rgba(96,165,250,0.45)",
+    color: "#ffffff",
+    boxShadow: "0 7px 18px rgba(37,99,235,0.18)",
+  },
+
+  content: {
+    width: "100%",
+  },
+};
+
+export default RolesPermissionsPage;
