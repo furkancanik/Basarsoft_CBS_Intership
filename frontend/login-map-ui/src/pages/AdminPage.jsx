@@ -17,7 +17,7 @@ function AdminPage() {
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [accessMode, setAccessMode] = useState("");
 
-  const API_BASE_URL = "http://localhost:5075";
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5075";
   const token = localStorage.getItem("token");
 
   const config = {

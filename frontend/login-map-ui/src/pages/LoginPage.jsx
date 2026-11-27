@@ -12,7 +12,7 @@ function LoginPage() {
  const login = async () => {
   try {
     const response = await axios.post(
-      "http://localhost:5075/api/auth/login",
+      `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5075"}/api/auth/login`,
       {
         username,
         password,

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { GEOSERVER_ENABLED } from "../../config";
 
 
 function TopbarIcon({ type }) {
@@ -133,7 +134,7 @@ function Topbar({
     adminAccess: false,
   });
 
-  const API_BASE_URL = "http://localhost:5075";
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5075";
 
   const config = {
     headers: {
@@ -406,13 +407,23 @@ function Topbar({
         .map((item) => item.permissionName)
         .filter(Boolean);
 
+      const permissionState = buildPermissionState({
+        isAdmin,
+        isOperator,
+        rolePermissionNames,
+        directPermissionNames,
+      });
+
+      // GeoServer kapalıysa (canlı sürüm) ona bağlı özellikler gizlenir.
       setMenuPermissions(
-        buildPermissionState({
-          isAdmin,
-          isOperator,
-          rolePermissionNames,
-          directPermissionNames,
-        })
+        GEOSERVER_ENABLED
+          ? permissionState
+          : {
+              ...permissionState,
+              poiCreate: false,
+              heatmapView: false,
+              queryView: false,
+            }
       );
     } catch (error) {
       console.log("Menü yetkileri yüklenemedi:", error);
@@ -856,6 +867,7 @@ function Topbar({
                     )}
                   </div>
 
+                  {GEOSERVER_ENABLED && (
                   <div style={styles.combinedLayerRow}>
                     <label style={styles.combinedLayerVisibility}>
                       <input
@@ -904,6 +916,7 @@ function Topbar({
                       </button>
                     )}
                   </div>
+                  )}
                 </div>
               )}
             </div>

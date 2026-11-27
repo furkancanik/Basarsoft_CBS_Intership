@@ -183,11 +183,26 @@ builder.Services.AddCors(
             "ReactPolicy",
             policy =>
             {
+                // Canlıda izin verilen adresler ortam değişkeninden
+                // virgülle ayrılmış olarak verilir:
+                // Cors__AllowedOrigins=https://site.vercel.app
+                var allowedOrigins =
+                    (builder.Configuration["Cors:AllowedOrigins"] ?? "")
+                        .Split(
+                            ',',
+                            StringSplitOptions.RemoveEmptyEntries |
+                            StringSplitOptions.TrimEntries
+                        )
+                        .Concat(new[]
+                        {
+                            "http://localhost:5173",
+                            "http://localhost:5174"
+                        })
+                        .Distinct()
+                        .ToArray();
+
                 policy
-                    .WithOrigins(
-                        "http://localhost:5173",
-                        "http://localhost:5174"
-                    )
+                    .WithOrigins(allowedOrigins)
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials();

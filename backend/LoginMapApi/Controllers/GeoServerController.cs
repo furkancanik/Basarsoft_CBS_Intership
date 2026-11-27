@@ -7,10 +7,19 @@ namespace LoginMapApi.Controllers;
 public class GeoServerController : ControllerBase
 {
     private readonly HttpClient _httpClient;
+    private readonly string _geoServerBaseUrl;
 
-    public GeoServerController(HttpClient httpClient)
+    public GeoServerController(
+        HttpClient httpClient,
+        IConfiguration configuration
+    )
     {
         _httpClient = httpClient;
+
+        _geoServerBaseUrl =
+            (configuration["GeoServer:BaseUrl"]
+                ?? "http://localhost:8080/geoserver/")
+            .TrimEnd('/');
     }
 
     [HttpGet("features/{layerName}")]
@@ -29,7 +38,7 @@ public class GeoServerController : ControllerBase
             return BadRequest("Geçersiz layer adı.");
 
         var url =
-            $"http://localhost:8080/geoserver/staj/ows" +
+            $"{_geoServerBaseUrl}/staj/ows" +
             $"?service=WFS" +
             $"&version=1.0.0" +
             $"&request=GetFeature" +

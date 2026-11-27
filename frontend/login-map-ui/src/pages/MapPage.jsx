@@ -50,6 +50,7 @@ import styles from "./MapPage/styles";
 import Topbar from "./MapPage/Topbar";
 import GeometryPopup from "./MapPage/GeometryPopup";
 import QueryPanel from "./MapPage/QueryPanel";
+import { GEOSERVER_ENABLED } from "../config";
 
 import { API_BASE_URL, getAuthConfig, getApiUrl } from "./MapPage/api";
 import {
@@ -4485,6 +4486,9 @@ const createWmsLayer = (layerName, currentUserId) => {
   };
 
  const toggleHeatmap = () => {
+  // Isı haritası GeoServer WMS katmanlarından gelir.
+  if (!GEOSERVER_ENABLED) return;
+
   const map = mapObjectRef.current;
 
   if (!map) {
@@ -5771,7 +5775,8 @@ const polygonWmsLayer = createWmsLayer("Polygons", currentUserId);
 
   authAreaLayer,
   vectorLayer,
-  poiLayer,
+  // GeoServer kapalıysa (canlı sürüm) POI katmanı haritaya eklenmez.
+  ...(GEOSERVER_ENABLED ? [poiLayer] : []),
   transitRouteLineLayer,
   transitStopLayer,
   locationAnalysisLayer,
@@ -5796,7 +5801,9 @@ const polygonWmsLayer = createWmsLayer("Polygons", currentUserId);
     loadSavedGeometries(vectorSource);
     loadAuthorizedAreas();
     loadPoiCategories();
-    loadPois();
+    if (GEOSERVER_ENABLED) {
+      loadPois();
+    }
     loadTransitRoutes();
     loadTransitStops();
 
@@ -8150,7 +8157,7 @@ const focusGeometryFromQuery = (item) => {
         />
       )}
 
-      {queryPanelOpen && (
+      {GEOSERVER_ENABLED && queryPanelOpen && (
         <QueryPanel
           onSelectGeometry={focusGeometryFromQuery}
         />

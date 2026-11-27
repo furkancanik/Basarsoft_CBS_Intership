@@ -12,7 +12,7 @@ export async function startVehicleConnection(token) {
 
   if (!connection) {
     connection = new signalR.HubConnectionBuilder()
-      .withUrl("http://localhost:5075/hubs/vehicle", {
+      .withUrl(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5075"}/hubs/vehicle`, {
         accessTokenFactory: () => token,
       })
       .withAutomaticReconnect()

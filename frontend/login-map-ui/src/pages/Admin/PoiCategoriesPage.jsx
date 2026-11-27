@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import AdminPopup from "./AdminPopup";
 
-const API_BASE_URL = "http://localhost:5075";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5075";
 
 function PoiCategoriesPage() {
   const [categories, setCategories] = useState([]);
