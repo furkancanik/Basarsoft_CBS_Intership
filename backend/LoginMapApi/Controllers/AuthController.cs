@@ -156,6 +156,25 @@ public class AuthController : ControllerBase
         _context.Users.Add(user);
         _context.SaveChanges();
 
+        // Yeni hesaplara varsayılan "Kullanıcı" rolü atanır; bu rol
+        // çizim, analiz, POI ve toplu taşıma yetkilerini içerir.
+        var defaultRole = _context.Roles.FirstOrDefault(role =>
+            role.Name == "Kullanıcı" &&
+            role.IsActive &&
+            !role.IsDeleted
+        );
+
+        if (defaultRole != null)
+        {
+            _context.UserRoles.Add(new Models.UserRole
+            {
+                UserId = user.Id,
+                RoleId = defaultRole.Id
+            });
+
+            _context.SaveChanges();
+        }
+
         return Ok(new
         {
             message = "Kullanıcı oluşturuldu"

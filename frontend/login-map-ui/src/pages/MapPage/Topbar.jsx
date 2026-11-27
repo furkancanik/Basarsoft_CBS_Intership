@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { GEOSERVER_ENABLED } from "../../config";
 
 
 function TopbarIcon({ type }) {
@@ -414,17 +413,7 @@ function Topbar({
         directPermissionNames,
       });
 
-      // GeoServer kapalıysa (canlı sürüm) ona bağlı özellikler gizlenir.
-      setMenuPermissions(
-        GEOSERVER_ENABLED
-          ? permissionState
-          : {
-              ...permissionState,
-              poiCreate: false,
-              heatmapView: false,
-              queryView: false,
-            }
-      );
+      setMenuPermissions(permissionState);
     } catch (error) {
       console.log("Menü yetkileri yüklenemedi:", error);
 
@@ -867,7 +856,6 @@ function Topbar({
                     )}
                   </div>
 
-                  {GEOSERVER_ENABLED && (
                   <div style={styles.combinedLayerRow}>
                     <label style={styles.combinedLayerVisibility}>
                       <input
@@ -916,7 +904,6 @@ function Topbar({
                       </button>
                     )}
                   </div>
-                  )}
                 </div>
               )}
             </div>

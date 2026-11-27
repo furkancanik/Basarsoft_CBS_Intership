@@ -266,8 +266,8 @@ public class PoisController : ControllerBase
             var canCreatePoi = await UserHasRole(
                 "Admin",
                 "Operator",
-                "Operatör"
-            );
+                "Operatör",
+                    "Kullanıcı");
 
             if (!canCreatePoi)
             {
@@ -395,7 +395,12 @@ public class PoisController : ControllerBase
         {
             var userId = GetUserId();
 
-            var isAdmin = await UserHasRole("Admin");
+            var isAdmin = await UserHasRole(
+                    "Admin",
+                    "Operator",
+                    "Operatör",
+                    "Kullanıcı"
+                );
 
             if (!isAdmin)
             {
@@ -513,7 +518,12 @@ public class PoisController : ControllerBase
         {
             var userId = GetUserId();
 
-            var isAdmin = await UserHasRole("Admin");
+            var isAdmin = await UserHasRole(
+                    "Admin",
+                    "Operator",
+                    "Operatör",
+                    "Kullanıcı"
+                );
 
             if (!isAdmin)
             {

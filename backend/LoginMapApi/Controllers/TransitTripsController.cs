@@ -90,6 +90,7 @@ public class TransitTripsController : ControllerBase
             "Admin",
             "Operator",
             "Operatör",
+                    "Kullanıcı",
             "Ulaşım Operatörü",
             "Ulasim Operatoru"
         };

@@ -385,6 +385,7 @@ public class TransitStopsController : ControllerBase
                 "Admin",
                 "Operator",
                 "Operatör",
+                    "Kullanıcı",
                 "Ulaşım Operatörü",
                 "Ulasim Operatoru"
             );
@@ -537,6 +538,7 @@ public class TransitStopsController : ControllerBase
                 "Admin",
                 "Operator",
                 "Operatör",
+                    "Kullanıcı",
                 "Ulaşım Operatörü",
                 "Ulasim Operatoru"
             );
@@ -727,6 +729,7 @@ public class TransitStopsController : ControllerBase
                 "Admin",
                 "Operator",
                 "Operatör",
+                    "Kullanıcı",
                 "Ulaşım Operatörü",
                 "Ulasim Operatoru"
             );
@@ -866,6 +869,7 @@ public class TransitStopsController : ControllerBase
                 "Admin",
                 "Operator",
                 "Operatör",
+                    "Kullanıcı",
                 "Ulaşım Operatörü",
                 "Ulasim Operatoru"
             );

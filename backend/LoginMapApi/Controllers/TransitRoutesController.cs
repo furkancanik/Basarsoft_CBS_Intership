@@ -420,6 +420,7 @@ public class TransitRoutesController : ControllerBase
                 "Admin",
                 "Operator",
                 "Operatör",
+                    "Kullanıcı",
                 "Ulaşım Operatörü",
                 "Ulasim Operatoru"
             );
@@ -591,6 +592,7 @@ public class TransitRoutesController : ControllerBase
                 "Admin",
                 "Operator",
                 "Operatör",
+                    "Kullanıcı",
                 "Ulaşım Operatörü",
                 "Ulasim Operatoru"
             );
@@ -833,6 +835,7 @@ public class TransitRoutesController : ControllerBase
                 "Admin",
                 "Operator",
                 "Operatör",
+                    "Kullanıcı",
                 "Ulaşım Operatörü",
                 "Ulasim Operatoru"
             );
@@ -995,7 +998,12 @@ public class TransitRoutesController : ControllerBase
             var userId = GetUserId();
 
             var isAdmin =
-                await UserHasRole("Admin");
+                await UserHasRole(
+                    "Admin",
+                    "Operator",
+                    "Operatör",
+                    "Kullanıcı"
+                );
 
             if (!isAdmin)
             {

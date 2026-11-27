@@ -555,7 +555,11 @@ const hasUnlimitedMapDrawingRole = (roleNames = []) =>
       normalizedRoleName === "admin" ||
       normalizedRoleName === "administrator" ||
       normalizedRoleName === "operatör" ||
-      normalizedRoleName === "operator"
+      normalizedRoleName === "operator" ||
+      // Veriler kullanıcıya özel olduğu için Kullanıcı rolü de
+      // bölge kısıtı olmadan çizim yapabilir.
+      normalizedRoleName === "kullanıcı" ||
+      normalizedRoleName === "kullanici"
     );
   });
 
@@ -4485,10 +4489,69 @@ const createWmsLayer = (layerName, currentUserId) => {
     heatmapLayerRef.current = [];
   };
 
- const toggleHeatmap = () => {
-  // Isı haritası GeoServer WMS katmanlarından gelir.
-  if (!GEOSERVER_ENABLED) return;
+ // GeoServer olmadan (canlı sürüm) ısı haritası tarayıcıda,
+ // kullanıcının kendi nokta / hat / alan geometrilerinden üretilir.
+ const createClientHeatmapLayer = () => {
+  const heatSource = new VectorSource();
 
+  const addPoint = (coordinate) => {
+    heatSource.addFeature(
+      new Feature({ geometry: new Point(coordinate), weight: 1 })
+    );
+  };
+
+  const addAlongLine = (coordinates) => {
+    for (let i = 0; i < coordinates.length; i += 1) {
+      addPoint(coordinates[i]);
+
+      if (i === 0) continue;
+
+      const [x1, y1] = coordinates[i - 1];
+      const [x2, y2] = coordinates[i];
+      const length = Math.hypot(x2 - x1, y2 - y1);
+      const steps = Math.min(50, Math.floor(length / 300));
+
+      for (let step = 1; step < steps; step += 1) {
+        const t = step / steps;
+        addPoint([x1 + (x2 - x1) * t, y1 + (y2 - y1) * t]);
+      }
+    }
+  };
+
+  (sourceRef.current?.getFeatures() || []).forEach((feature) => {
+    const featureType = feature.get("featureType");
+    const geometry = feature.getGeometry();
+
+    if (!geometry) return;
+
+    if (featureType === "Point") {
+      addPoint(geometry.getCoordinates());
+    } else if (featureType === "LineString") {
+      addAlongLine(geometry.getCoordinates());
+    } else if (featureType === "Polygon") {
+      const rings = geometry.getCoordinates();
+      addAlongLine(rings[0] || []);
+
+      if (typeof geometry.getInteriorPoint === "function") {
+        addPoint(geometry.getInteriorPoint().getCoordinates().slice(0, 2));
+      }
+    }
+  });
+
+  const layer = new HeatmapLayer({
+    source: heatSource,
+    blur: 22,
+    radius: 14,
+    weight: (feature) => Number(feature.get("weight") || 1),
+    opacity: 0.92,
+    zIndex: 200,
+  });
+
+  layer.set("layerType", "Heatmap-Client");
+  return layer;
+ };
+
+ const toggleHeatmap = () => {
   const map = mapObjectRef.current;
 
   if (!map) {
@@ -4514,6 +4577,16 @@ const createWmsLayer = (layerName, currentUserId) => {
   }
 
   removeHeatmapLayers();
+
+  if (!GEOSERVER_ENABLED) {
+    const clientLayer = createClientHeatmapLayer();
+    map.addLayer(clientLayer);
+    heatmapLayerRef.current = [clientLayer];
+    setNormalGeometryVisibility(false);
+    setHeatmapOpen(true);
+    map.renderSync();
+    return;
+  }
 
   const heatmapDefinitions = [
     {
@@ -4788,6 +4861,11 @@ const loadSavedGeometries = async (vectorSource) => {
     const wktFormat = new WKT();
 
     try {
+      // GeoServer yoksa (canlı sürüm) doğrudan POI API'sine geç.
+      if (!GEOSERVER_ENABLED) {
+        throw new Error("GeoServer devre dışı");
+      }
+
       // Öncelik GeoServer görünümünde. Mevcut POI yapısı korunur.
       const response = await axios.get(
         `${API_BASE_URL}/api/GeoServer/features/vw_pois`
@@ -5775,8 +5853,7 @@ const polygonWmsLayer = createWmsLayer("Polygons", currentUserId);
 
   authAreaLayer,
   vectorLayer,
-  // GeoServer kapalıysa (canlı sürüm) POI katmanı haritaya eklenmez.
-  ...(GEOSERVER_ENABLED ? [poiLayer] : []),
+  poiLayer,
   transitRouteLineLayer,
   transitStopLayer,
   locationAnalysisLayer,
@@ -5801,9 +5878,7 @@ const polygonWmsLayer = createWmsLayer("Polygons", currentUserId);
     loadSavedGeometries(vectorSource);
     loadAuthorizedAreas();
     loadPoiCategories();
-    if (GEOSERVER_ENABLED) {
-      loadPois();
-    }
+    loadPois();
     loadTransitRoutes();
     loadTransitStops();
 
@@ -8157,7 +8232,7 @@ const focusGeometryFromQuery = (item) => {
         />
       )}
 
-      {GEOSERVER_ENABLED && queryPanelOpen && (
+      {queryPanelOpen && (
         <QueryPanel
           onSelectGeometry={focusGeometryFromQuery}
         />
