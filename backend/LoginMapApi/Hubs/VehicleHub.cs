@@ -38,6 +38,11 @@ public class VehicleHub : Hub
                 (
                     route.CreatedUserId == userId ||
                     (
+                        route.CreatedUser != null &&
+                        route.CreatedUser.Username ==
+                            SystemData.IstanbulMetroUsername
+                    ) ||
+                    (
                         route.CreatedUserId == null &&
                         route.Stops.Any(stop =>
                             stop.UserId == userId

@@ -46,6 +46,140 @@ public class AppDbContext : DbContext
         }
     }
 
+    // =====================================================
+    // SİSTEM VERİSİ KORUMASI
+    //
+    // İstanbul metro hatları herkese görünür ama HTTP isteğiyle
+    // (yani bir kullanıcı tarafından) değiştirilemez.
+    // Arka plan servisleri (veri yükleyici) etkilenmez.
+    // =====================================================
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        GuardSystemData();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(
+        bool acceptAllChangesOnSuccess,
+        CancellationToken cancellationToken = default
+    )
+    {
+        GuardSystemData();
+        return base.SaveChangesAsync(
+            acceptAllChangesOnSuccess,
+            cancellationToken
+        );
+    }
+
+    private void GuardSystemData()
+    {
+        if (CurrentUserId == null)
+        {
+            return;
+        }
+
+        var changed = ChangeTracker.Entries()
+            .Where(entry =>
+                entry.State == EntityState.Added ||
+                entry.State == EntityState.Modified ||
+                entry.State == EntityState.Deleted
+            )
+            .ToList();
+
+        var routeIds = new HashSet<int>();
+        var stopIds = new HashSet<int>();
+        var tripIds = new HashSet<int>();
+        var systemUserReferenced = new List<int>();
+
+        foreach (var entry in changed)
+        {
+            switch (entry.Entity)
+            {
+                case TransitRoute route:
+                    if (route.Id > 0) routeIds.Add(route.Id);
+                    if (route.CreatedUserId.HasValue)
+                        systemUserReferenced.Add(route.CreatedUserId.Value);
+                    break;
+
+                case TransitStop stop:
+                    if (stop.Id > 0) stopIds.Add(stop.Id);
+                    routeIds.Add(stop.TransitRouteId);
+                    systemUserReferenced.Add(stop.UserId);
+                    break;
+
+                case TransitSchedule schedule:
+                    routeIds.Add(schedule.TransitRouteId);
+                    break;
+
+                case TransitTrip trip:
+                    routeIds.Add(trip.TransitRouteId);
+                    break;
+
+                case TransitTripStop tripStop:
+                    tripIds.Add(tripStop.TransitTripId);
+                    stopIds.Add(tripStop.TransitStopId);
+                    break;
+            }
+        }
+
+        if (routeIds.Count == 0 &&
+            stopIds.Count == 0 &&
+            tripIds.Count == 0 &&
+            systemUserReferenced.Count == 0)
+        {
+            return;
+        }
+
+        var systemUserId = Users
+            .AsNoTracking()
+            .Where(user =>
+                user.Username == SystemData.IstanbulMetroUsername
+            )
+            .Select(user => (int?)user.Id)
+            .FirstOrDefault();
+
+        if (systemUserId == null)
+        {
+            return;
+        }
+
+        var touchesSystemData =
+            systemUserReferenced.Contains(systemUserId.Value) ||
+            (routeIds.Count > 0 &&
+                TransitRoutes
+                    .IgnoreQueryFilters()
+                    .AsNoTracking()
+                    .Any(route =>
+                        routeIds.Contains(route.Id) &&
+                        route.CreatedUserId == systemUserId
+                    )) ||
+            (stopIds.Count > 0 &&
+                TransitStops
+                    .IgnoreQueryFilters()
+                    .AsNoTracking()
+                    .Any(stop =>
+                        stopIds.Contains(stop.Id) &&
+                        stop.UserId == systemUserId
+                    )) ||
+            (tripIds.Count > 0 &&
+                TransitTrips
+                    .IgnoreQueryFilters()
+                    .AsNoTracking()
+                    .Any(trip =>
+                        tripIds.Contains(trip.Id) &&
+                        trip.TransitRoute != null &&
+                        trip.TransitRoute.CreatedUserId == systemUserId
+                    ));
+
+        if (touchesSystemData)
+        {
+            throw new InvalidOperationException(
+                "İstanbul metro hatları sistem tarafından sağlanır ve değiştirilemez."
+            );
+        }
+    }
+
     public DbSet<User> Users { get; set; }
     public DbSet<PointFeature> Points { get; set; }
     public DbSet<LineFeature> Lines { get; set; }
@@ -259,10 +393,15 @@ public class AppDbContext : DbContext
                 poi.UserId == CurrentUserId
             );
 
+        // İstanbul metro hatları (SystemData.IstanbulMetroUsername) herkese görünür.
         modelBuilder.Entity<TransitStop>()
             .HasQueryFilter(stop =>
                 CurrentUserId == null ||
-                stop.UserId == CurrentUserId
+                stop.UserId == CurrentUserId ||
+                (
+                    stop.User != null &&
+                    stop.User.Username == SystemData.IstanbulMetroUsername
+                )
             );
 
         // Eski güzergahlarda CreatedUserId boş olabilir; bu durumda
@@ -271,6 +410,10 @@ public class AppDbContext : DbContext
             .HasQueryFilter(route =>
                 CurrentUserId == null ||
                 route.CreatedUserId == CurrentUserId ||
+                (
+                    route.CreatedUser != null &&
+                    route.CreatedUser.Username == SystemData.IstanbulMetroUsername
+                ) ||
                 (
                     route.CreatedUserId == null &&
                     route.Stops.Any(stop =>
@@ -286,6 +429,10 @@ public class AppDbContext : DbContext
                     schedule.TransitRoute != null &&
                     (
                         schedule.TransitRoute.CreatedUserId == CurrentUserId ||
+                        (
+                            schedule.TransitRoute.CreatedUser != null &&
+                            schedule.TransitRoute.CreatedUser.Username == SystemData.IstanbulMetroUsername
+                        ) ||
                         (
                             schedule.TransitRoute.CreatedUserId == null &&
                             schedule.TransitRoute.Stops.Any(stop =>
@@ -304,6 +451,10 @@ public class AppDbContext : DbContext
                     (
                         trip.TransitRoute.CreatedUserId == CurrentUserId ||
                         (
+                            trip.TransitRoute.CreatedUser != null &&
+                            trip.TransitRoute.CreatedUser.Username == SystemData.IstanbulMetroUsername
+                        ) ||
+                        (
                             trip.TransitRoute.CreatedUserId == null &&
                             trip.TransitRoute.Stops.Any(stop =>
                                 stop.UserId == CurrentUserId
@@ -318,7 +469,13 @@ public class AppDbContext : DbContext
                 CurrentUserId == null ||
                 (
                     tripStop.TransitStop != null &&
-                    tripStop.TransitStop.UserId == CurrentUserId
+                    (
+                        tripStop.TransitStop.UserId == CurrentUserId ||
+                        (
+                            tripStop.TransitStop.User != null &&
+                            tripStop.TransitStop.User.Username == SystemData.IstanbulMetroUsername
+                        )
+                    )
                 )
             );
     }

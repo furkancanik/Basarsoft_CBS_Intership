@@ -1231,21 +1231,26 @@ function TransitRoutesPanel({ onClose }) {
                           : "Simülasyonu Başlat"}
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(route)}
-                      style={flatEditButtonStyle}
-                    >
-                      Düzenle
-                    </button>
+                    {/* İstanbul metro hatları sistem verisidir, düzenlenemez. */}
+                    {route.creatorUsername !== "istanbul_metro" && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(route)}
+                          style={flatEditButtonStyle}
+                        >
+                          Düzenle
+                        </button>
 
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteRoute(route)}
-                      style={flatDeleteButtonStyle}
-                    >
-                      Sil
-                    </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteRoute(route)}
+                          style={flatDeleteButtonStyle}
+                        >
+                          Sil
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               );

@@ -119,6 +119,11 @@ builder.Services.AddHostedService<
     VehicleSimulationBackgroundService
 >();
 
+// İstanbul metro hatlarını (İBB Açık Veri) açılışta bir kez yükler.
+builder.Services.AddHostedService<
+    IstanbulMetroSeedService
+>();
+
 // =====================================================
 // DRIVING OSRM
 //
