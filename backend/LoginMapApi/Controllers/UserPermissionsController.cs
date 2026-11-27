@@ -1,4 +1,6 @@
 using LoginMapApi.Data;
+using LoginMapApi.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +12,7 @@ public class UserPermissionRequest
     public int PermissionId { get; set; }
 }
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class UserPermissionsController : ControllerBase
@@ -24,7 +27,13 @@ public class UserPermissionsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetUserPermissions()
     {
+        // Admin tüm kayıtları, diğer kullanıcılar yalnızca kendi
+        // doğrudan yetkilerini görür.
+        var isAdmin = await AdminAccess.IsAdminAsync(_context, User);
+        var currentUserId = AdminAccess.GetUserId(User) ?? -1;
+
         var userPermissions = await _context.UserPermissions
+            .Where(up => isAdmin || up.UserId == currentUserId)
             .Include(up => up.User)
             .Include(up => up.Permission)
             .OrderBy(up => up.Id)
@@ -42,6 +51,7 @@ public class UserPermissionsController : ControllerBase
         return Ok(userPermissions);
     }
 
+    [AdminOnly]
     [HttpPost]
     public async Task<IActionResult> AssignPermissionToUser(UserPermissionRequest request)
     {
@@ -77,6 +87,7 @@ public class UserPermissionsController : ControllerBase
         return Ok(userPermission);
     }
 
+    [AdminOnly]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUserPermission(int id)
     {

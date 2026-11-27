@@ -1,5 +1,7 @@
 using LoginMapApi.Data;
 using LoginMapApi.Models;
+using LoginMapApi.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -7,6 +9,7 @@ using System.IO;
 
 namespace LoginMapApi.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
@@ -18,6 +21,7 @@ public class UsersController : ControllerBase
         _context = context;
     }
 
+    [AdminOnly]
     [HttpGet]
     public async Task<IActionResult> GetUsers()
     {
@@ -58,9 +62,16 @@ public class UsersController : ControllerBase
         if (user == null)
             return NotFound("Kullanıcı bulunamadı.");
 
-        return Ok(user);
+        return Ok(new
+        {
+            user.Id,
+            user.Username,
+            user.ProfileImageUrl,
+            user.IsActive
+        });
     }
 
+    [AdminOnly]
     [HttpPost]
     public async Task<IActionResult> CreateUser(User user)
     {
@@ -73,7 +84,13 @@ public class UsersController : ControllerBase
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        return Ok(user);
+        return Ok(new
+        {
+            user.Id,
+            user.Username,
+            user.ProfileImageUrl,
+            user.IsActive
+        });
     }
 
     [HttpPost("upload-profile-image")]
@@ -126,6 +143,7 @@ public class UsersController : ControllerBase
         });
     }
 
+    [AdminOnly]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateUser(int id, User request)
     {
@@ -146,9 +164,16 @@ public class UsersController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        return Ok(user);
+        return Ok(new
+        {
+            user.Id,
+            user.Username,
+            user.ProfileImageUrl,
+            user.IsActive
+        });
     }
 
+    [AdminOnly]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUser(int id)
     {

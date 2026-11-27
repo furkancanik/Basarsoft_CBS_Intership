@@ -1,10 +1,13 @@
 using LoginMapApi.Data;
 using LoginMapApi.Models;
+using LoginMapApi.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace LoginMapApi.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class RolesController : ControllerBase
@@ -27,6 +30,7 @@ public class RolesController : ControllerBase
         return Ok(roles);
     }
 
+    [AdminOnly]
     [HttpPost]
     public async Task<IActionResult> CreateRole(Role role)
     {
@@ -41,6 +45,7 @@ public class RolesController : ControllerBase
         return Ok(role);
     }
 
+    [AdminOnly]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateRole(int id, Role request)
     {
@@ -58,6 +63,7 @@ public class RolesController : ControllerBase
         return Ok(role);
     }
 
+    [AdminOnly]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteRole(int id)
     {

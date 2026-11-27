@@ -1,5 +1,7 @@
 using LoginMapApi.Data;
 using LoginMapApi.Models;
+using LoginMapApi.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +13,7 @@ public class UserRoleRequest
     public int RoleId { get; set; }
 }
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class UserRolesController : ControllerBase
@@ -25,8 +28,14 @@ public class UserRolesController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetUserRoles()
     {
+        // Admin tüm kayıtları, diğer kullanıcılar yalnızca kendi
+        // rollerini görür (arayüz menü yetkileri için kullanır).
+        var isAdmin = await AdminAccess.IsAdminAsync(_context, User);
+        var currentUserId = AdminAccess.GetUserId(User) ?? -1;
+
         var userRoles = await _context.UserRoles
             .AsNoTracking()
+            .Where(ur => isAdmin || ur.UserId == currentUserId)
             .Where(ur =>
                 ur.User.IsActive &&
                 !ur.User.IsDeleted &&
@@ -47,6 +56,7 @@ public class UserRolesController : ControllerBase
         return Ok(userRoles);
     }
 
+    [AdminOnly]
     [HttpPost]
     public async Task<IActionResult> AssignRole(
         [FromBody] UserRoleRequest request
@@ -113,6 +123,7 @@ public class UserRolesController : ControllerBase
         });
     }
 
+    [AdminOnly]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteUserRole(int id)
     {

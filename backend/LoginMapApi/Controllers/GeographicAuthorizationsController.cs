@@ -1,5 +1,7 @@
 using LoginMapApi.Data;
 using LoginMapApi.Models;
+using LoginMapApi.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.IO;
@@ -7,6 +9,7 @@ using System.Security.Claims;
 
 namespace LoginMapApi.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class GeographicAuthorizationsController : ControllerBase
@@ -18,6 +21,7 @@ public class GeographicAuthorizationsController : ControllerBase
         _context = context;
     }
 
+    [AdminOnly]
     [HttpGet]
     public IActionResult GetAll()
     {
@@ -43,6 +47,7 @@ public class GeographicAuthorizationsController : ControllerBase
         return Ok(data);
     }
 
+    [AdminOnly]
     [HttpPost]
     public IActionResult Create([FromBody] GeographicAuthorizationRequest request)
     {
@@ -109,6 +114,7 @@ public class GeographicAuthorizationsController : ControllerBase
         return Ok(areas);
     }
 
+    [AdminOnly]
     [HttpDelete("{id}")]
     public IActionResult Delete(int id)
     {

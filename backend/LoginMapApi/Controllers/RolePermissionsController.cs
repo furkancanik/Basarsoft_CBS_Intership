@@ -1,5 +1,7 @@
 using LoginMapApi.Data;
 using LoginMapApi.Models;
+using LoginMapApi.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +13,7 @@ public class RolePermissionRequest
     public int PermissionId { get; set; }
 }
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class RolePermissionsController : ControllerBase
@@ -42,6 +45,7 @@ public class RolePermissionsController : ControllerBase
         return Ok(rolePermissions);
     }
 
+    [AdminOnly]
     [HttpPost]
     public async Task<IActionResult> AssignPermissionToRole(RolePermissionRequest request)
     {
@@ -65,6 +69,7 @@ public class RolePermissionsController : ControllerBase
         return Ok(rolePermission);
     }
 
+    [AdminOnly]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteRolePermission(int id)
     {
