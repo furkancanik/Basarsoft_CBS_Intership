@@ -146,6 +146,11 @@ builder.Services.AddHttpClient<
 
         client.Timeout =
             TimeSpan.FromSeconds(60);
+
+        // routing.openstreetmap.de, User-Agent olmayan istekleri 403 ile reddeder.
+        client.DefaultRequestHeaders.UserAgent.ParseAdd(
+            "BasarsoftCBS/1.0 (+https://basarsoft-cbs.vercel.app)"
+        );
     }
 );
 
@@ -177,6 +182,11 @@ builder.Services.AddHttpClient<
 
         client.Timeout =
             TimeSpan.FromSeconds(30);
+
+        // routing.openstreetmap.de, User-Agent olmayan istekleri 403 ile reddeder.
+        client.DefaultRequestHeaders.UserAgent.ParseAdd(
+            "BasarsoftCBS/1.0 (+https://basarsoft-cbs.vercel.app)"
+        );
     }
 );
 
