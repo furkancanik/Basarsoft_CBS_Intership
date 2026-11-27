@@ -391,7 +391,9 @@ public class TransitTripsController : ControllerBase
             return BadRequest(new { message = "Sefer kodu boş olamaz." });
         }
 
-        var duplicate = await _context.TransitTrips.AnyAsync(item =>
+        // Sefer kodu tüm sistemde benzersiz olduğu için
+        // kontrol kullanıcı filtresi olmadan yapılır.
+        var duplicate = await _context.TransitTrips.IgnoreQueryFilters().AnyAsync(item =>
             !item.IsDeleted && item.TripCode == tripCode
         );
 
@@ -528,7 +530,9 @@ public class TransitTripsController : ControllerBase
         }
 
         var tripCode = request.TripCode.Trim().ToUpperInvariant();
-        var duplicate = await _context.TransitTrips.AnyAsync(item =>
+        // Sefer kodu tüm sistemde benzersiz olduğu için
+        // kontrol kullanıcı filtresi olmadan yapılır.
+        var duplicate = await _context.TransitTrips.IgnoreQueryFilters().AnyAsync(item =>
             item.Id != id &&
             !item.IsDeleted &&
             item.TripCode == tripCode

@@ -1,11 +1,51 @@
+using LoginMapApi.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace LoginMapApi.Hubs;
 
 [Authorize]
 public class VehicleHub : Hub
 {
+    private readonly AppDbContext _context;
+
+    public VehicleHub(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    /*
+     * Kullanıcı yalnızca kendi oluşturduğu güzergahların
+     * araç yayınına katılabilir.
+     */
+    private async Task<bool> UserOwnsRoute(int routeId)
+    {
+        var claim = Context.User?
+            .FindFirst(ClaimTypes.NameIdentifier)?
+            .Value;
+
+        if (!int.TryParse(claim, out var userId))
+        {
+            return false;
+        }
+
+        return await _context.TransitRoutes
+            .IgnoreQueryFilters()
+            .AnyAsync(route =>
+                route.Id == routeId &&
+                (
+                    route.CreatedUserId == userId ||
+                    (
+                        route.CreatedUserId == null &&
+                        route.Stops.Any(stop =>
+                            stop.UserId == userId
+                        )
+                    )
+                )
+            );
+    }
     /*
      * Kullanıcı belirli bir güzergahın araç yayınını takip etmeye başlar.
      * Her güzergah için ayrı SignalR grubu kullanılır.
@@ -16,6 +56,13 @@ public class VehicleHub : Hub
         {
             throw new HubException(
                 "Geçerli bir güzergah seçilmelidir."
+            );
+        }
+
+        if (!await UserOwnsRoute(routeId))
+        {
+            throw new HubException(
+                "Bu güzergahı takip etme yetkiniz yok."
             );
         }
 

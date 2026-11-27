@@ -1,13 +1,49 @@
 using LoginMapApi.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace LoginMapApi.Data;
 
 public class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options)
+    private readonly IHttpContextAccessor? _httpContextAccessor;
+
+    public AppDbContext(
+        DbContextOptions<AppDbContext> options,
+        IHttpContextAccessor? httpContextAccessor = null
+    )
         : base(options)
     {
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    /*
+     * Veri izolasyonu için giriş yapan kullanıcının ID'si.
+     *
+     * - HTTP isteği yoksa (arka plan servisleri, araç simülasyonu,
+     *   migration) null döner ve filtre uygulanmaz.
+     * - HTTP isteği varsa ama kullanıcı giriş yapmamışsa -1 döner;
+     *   böylece anonim istekler hiçbir kullanıcı verisini göremez.
+     */
+    public int? CurrentUserId
+    {
+        get
+        {
+            var httpContext = _httpContextAccessor?.HttpContext;
+
+            if (httpContext == null)
+            {
+                return null;
+            }
+
+            var claim = httpContext.User?
+                .FindFirst(ClaimTypes.NameIdentifier)?
+                .Value;
+
+            return int.TryParse(claim, out var userId)
+                ? userId
+                : -1;
+        }
     }
 
     public DbSet<User> Users { get; set; }
@@ -208,5 +244,82 @@ public class AppDbContext : DbContext
                 tripStop.TransitStopId
             })
             .IsUnique();
+
+        // =====================================================
+        // KULLANICI BAZLI VERİ İZOLASYONU
+        //
+        // Her kullanıcı yalnızca kendi oluşturduğu toplu taşıma
+        // ve POI verilerini görür. Filtreler EF Core tarafından
+        // bu tablolara yapılan bütün sorgulara otomatik eklenir.
+        // =====================================================
+
+        modelBuilder.Entity<Poi>()
+            .HasQueryFilter(poi =>
+                CurrentUserId == null ||
+                poi.UserId == CurrentUserId
+            );
+
+        modelBuilder.Entity<TransitStop>()
+            .HasQueryFilter(stop =>
+                CurrentUserId == null ||
+                stop.UserId == CurrentUserId
+            );
+
+        // Eski güzergahlarda CreatedUserId boş olabilir; bu durumda
+        // sahiplik güzergahın duraklarını kimin eklediğine göre belirlenir.
+        modelBuilder.Entity<TransitRoute>()
+            .HasQueryFilter(route =>
+                CurrentUserId == null ||
+                route.CreatedUserId == CurrentUserId ||
+                (
+                    route.CreatedUserId == null &&
+                    route.Stops.Any(stop =>
+                        stop.UserId == CurrentUserId
+                    )
+                )
+            );
+
+        modelBuilder.Entity<TransitSchedule>()
+            .HasQueryFilter(schedule =>
+                CurrentUserId == null ||
+                (
+                    schedule.TransitRoute != null &&
+                    (
+                        schedule.TransitRoute.CreatedUserId == CurrentUserId ||
+                        (
+                            schedule.TransitRoute.CreatedUserId == null &&
+                            schedule.TransitRoute.Stops.Any(stop =>
+                                stop.UserId == CurrentUserId
+                            )
+                        )
+                    )
+                )
+            );
+
+        modelBuilder.Entity<TransitTrip>()
+            .HasQueryFilter(trip =>
+                CurrentUserId == null ||
+                (
+                    trip.TransitRoute != null &&
+                    (
+                        trip.TransitRoute.CreatedUserId == CurrentUserId ||
+                        (
+                            trip.TransitRoute.CreatedUserId == null &&
+                            trip.TransitRoute.Stops.Any(stop =>
+                                stop.UserId == CurrentUserId
+                            )
+                        )
+                    )
+                )
+            );
+
+        modelBuilder.Entity<TransitTripStop>()
+            .HasQueryFilter(tripStop =>
+                CurrentUserId == null ||
+                (
+                    tripStop.TransitStop != null &&
+                    tripStop.TransitStop.UserId == CurrentUserId
+                )
+            );
     }
 }

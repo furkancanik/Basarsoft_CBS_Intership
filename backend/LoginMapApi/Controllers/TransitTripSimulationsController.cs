@@ -1,5 +1,7 @@
 using System.Security.Claims;
+using LoginMapApi.Data;
 using LoginMapApi.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,12 +20,36 @@ public class TransitTripSimulationsController : ControllerBase
     private readonly IVehicleSimulationService
         _vehicleSimulationService;
 
+    private readonly AppDbContext _context;
+
     public TransitTripSimulationsController(
-        IVehicleSimulationService vehicleSimulationService
+        IVehicleSimulationService vehicleSimulationService,
+        AppDbContext context
     )
     {
         _vehicleSimulationService =
             vehicleSimulationService;
+
+        _context = context;
+    }
+
+    /*
+     * Kullanıcının kendi güzergahları. AppDbContext'teki kullanıcı
+     * filtresi sayesinde yalnızca giriş yapan kullanıcının
+     * güzergahları döner.
+     */
+    private async Task<HashSet<int>> GetOwnedRouteIdsAsync()
+    {
+        return (await _context.TransitRoutes
+            .Select(route => route.Id)
+            .ToListAsync())
+            .ToHashSet();
+    }
+
+    private Task<bool> UserOwnsTripAsync(int tripId)
+    {
+        return _context.TransitTrips
+            .AnyAsync(trip => trip.Id == tripId);
     }
 
     private int GetUserId()
@@ -141,6 +167,14 @@ public class TransitTripSimulationsController : ControllerBase
 
             var userId = GetUserId();
 
+            if (!await UserOwnsTripAsync(tripId))
+            {
+                return NotFound(new
+                {
+                    message = "Sefer bulunamadı."
+                });
+            }
+
             var simulation =
                 await _vehicleSimulationService
                     .StartTripAsync(
@@ -203,6 +237,21 @@ public class TransitTripSimulationsController : ControllerBase
     {
         try
         {
+            var state =
+                _vehicleSimulationService
+                    .GetState(simulationId);
+
+            if (state == null ||
+                !(await GetOwnedRouteIdsAsync())
+                    .Contains(state.RouteId))
+            {
+                return NotFound(new
+                {
+                    message =
+                        "Çalışan araç simülasyonu bulunamadı."
+                });
+            }
+
             var stopped =
                 await _vehicleSimulationService
                     .StopSimulationAsync(
@@ -256,6 +305,14 @@ public class TransitTripSimulationsController : ControllerBase
     {
         try
         {
+            if (!await UserOwnsTripAsync(tripId))
+            {
+                return NotFound(new
+                {
+                    message = "Sefer bulunamadı."
+                });
+            }
+
             var stoppedCount =
                 await _vehicleSimulationService
                     .StopTripSimulationsAsync(
@@ -304,6 +361,15 @@ public class TransitTripSimulationsController : ControllerBase
     {
         try
         {
+            if (!(await GetOwnedRouteIdsAsync())
+                    .Contains(routeId))
+            {
+                return NotFound(new
+                {
+                    message = "Güzergah bulunamadı."
+                });
+            }
+
             var stoppedCount =
                 await _vehicleSimulationService
                     .StopRouteSimulationsAsync(
@@ -341,7 +407,7 @@ public class TransitTripSimulationsController : ControllerBase
     [HttpGet(
         "simulations/{simulationId:guid}"
     )]
-    public IActionResult GetSimulation(
+    public async Task<IActionResult> GetSimulation(
         Guid simulationId
     )
     {
@@ -351,7 +417,9 @@ public class TransitTripSimulationsController : ControllerBase
                     simulationId
                 );
 
-        if (simulation == null)
+        if (simulation == null ||
+            !(await GetOwnedRouteIdsAsync())
+                .Contains(simulation.RouteId))
         {
             return NotFound(new
             {
@@ -369,14 +437,19 @@ public class TransitTripSimulationsController : ControllerBase
      * Belirli bir seferde çalışan bütün araçlar.
      */
     [HttpGet("trips/{tripId:int}")]
-    public IActionResult GetTripSimulations(
+    public async Task<IActionResult> GetTripSimulations(
         int tripId
     )
     {
+        var ownedRouteIds = await GetOwnedRouteIdsAsync();
+
         var simulations =
             _vehicleSimulationService
                 .GetTripSimulations(
                     tripId
+                )
+                .Where(state =>
+                    ownedRouteIds.Contains(state.RouteId)
                 )
                 .Select(ToResponse)
                 .ToList();
@@ -388,10 +461,17 @@ public class TransitTripSimulationsController : ControllerBase
      * Belirli bir hatta çalışan bütün araçlar.
      */
     [HttpGet("routes/{routeId:int}")]
-    public IActionResult GetRouteSimulations(
+    public async Task<IActionResult> GetRouteSimulations(
         int routeId
     )
     {
+        var ownedRouteIds = await GetOwnedRouteIdsAsync();
+
+        if (!ownedRouteIds.Contains(routeId))
+        {
+            return Ok(new List<object>());
+        }
+
         var simulations =
             _vehicleSimulationService
                 .GetRouteSimulations(
@@ -404,15 +484,20 @@ public class TransitTripSimulationsController : ControllerBase
     }
 
     /*
-     * Sistemde çalışan bütün araçlar.
+     * Kullanıcının kendi güzergahlarında çalışan bütün araçlar.
      */
     [HttpGet("running")]
-    public IActionResult
+    public async Task<IActionResult>
         GetRunningSimulations()
     {
+        var ownedRouteIds = await GetOwnedRouteIdsAsync();
+
         var simulations =
             _vehicleSimulationService
                 .GetRunningSimulations()
+                .Where(state =>
+                    ownedRouteIds.Contains(state.RouteId)
+                )
                 .Select(ToResponse)
                 .ToList();
 

@@ -50,6 +50,9 @@ builder.Services.AddDbContext<AppDbContext>(
 
 builder.Services.AddControllers();
 
+// Kullanıcı bazlı veri izolasyonu (AppDbContext) için gerekli.
+builder.Services.AddHttpContextAccessor();
+
 // =====================================================
 // SIGNALR
 // =====================================================

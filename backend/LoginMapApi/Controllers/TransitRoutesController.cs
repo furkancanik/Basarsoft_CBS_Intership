@@ -743,10 +743,19 @@ public class TransitRoutesController : ControllerBase
      * /api/TransitRoutes/1/simulations
      */
     [HttpGet("{id:int}/simulations")]
-    public IActionResult GetRouteSimulations(int id)
+    public async Task<IActionResult> GetRouteSimulations(int id)
     {
         try
         {
+            if (!await _context.TransitRoutes
+                    .AnyAsync(route => route.Id == id))
+            {
+                return NotFound(new
+                {
+                    message = "Güzergah bulunamadı."
+                });
+            }
+
             var simulations =
                 _vehicleSimulationService
                     .GetRouteSimulations(id)
@@ -774,13 +783,22 @@ public class TransitRoutesController : ControllerBase
      * /api/TransitRoutes/simulations/running
      */
     [HttpGet("simulations/running")]
-    public IActionResult GetRunningSimulations()
+    public async Task<IActionResult> GetRunningSimulations()
     {
         try
         {
+            // Kullanıcı yalnızca kendi güzergahlarındaki araçları görür.
+            var ownedRouteIds = (await _context.TransitRoutes
+                .Select(route => route.Id)
+                .ToListAsync())
+                .ToHashSet();
+
             var simulations =
                 _vehicleSimulationService
                     .GetRunningSimulations()
+                    .Where(state =>
+                        ownedRouteIds.Contains(state.RouteId)
+                    )
                     .Select(ToSimulationResponse)
                     .ToList();
 
