@@ -1231,8 +1231,8 @@ function TransitRoutesPanel({ onClose }) {
                           : "Simülasyonu Başlat"}
                     </button>
 
-                    {/* İstanbul metro hatları sistem verisidir, düzenlenemez. */}
-                    {route.creatorUsername !== "istanbul_metro" && (
+                    {/* Sistem hatları (İstanbul/Ankara metro, bölge turları) düzenlenemez. */}
+                    {!["istanbul_metro", "turkiye_hatlari"].includes(route.creatorUsername) && (
                       <>
                         <button
                           type="button"

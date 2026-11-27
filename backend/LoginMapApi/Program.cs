@@ -119,9 +119,9 @@ builder.Services.AddHostedService<
     VehicleSimulationBackgroundService
 >();
 
-// İstanbul metro hatlarını (İBB Açık Veri) açılışta bir kez yükler.
+// Sistem hatlarını (İstanbul/Ankara metro, bölge turları) açılışta yükler.
 builder.Services.AddHostedService<
-    IstanbulMetroSeedService
+    SystemLinesSeedService
 >();
 
 // =====================================================
