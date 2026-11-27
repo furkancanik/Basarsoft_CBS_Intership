@@ -154,3 +154,44 @@ body{
     margin-top:15px;
     min-height:20px;
 }
+.login-card button:disabled{
+    opacity:.75;
+    cursor:wait;
+    transform:none;
+}
+
+.success-message{
+    text-align:center;
+    color:#d9ffe4;
+    margin-top:4px;
+    min-height:20px;
+}
+
+.switch-mode{
+    text-align:center;
+    color:rgba(255,255,255,.85);
+    margin-top:18px;
+    font-size:16px;
+}
+
+.login-card .switch-mode-link{
+    width:auto;
+    height:auto;
+    margin:0;
+    padding:0;
+    border:none;
+    border-radius:0;
+    background:none;
+    box-shadow:none;
+    color:#9fd0ff;
+    font-size:16px;
+    font-weight:700;
+    text-decoration:underline;
+    cursor:pointer;
+}
+
+.login-card .switch-mode-link:hover{
+    transform:none;
+    box-shadow:none;
+    color:#ffffff;
+}

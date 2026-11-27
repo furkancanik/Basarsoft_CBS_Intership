@@ -107,8 +107,24 @@ public class AuthController : ControllerBase
         [FromBody] LoginRequest request
     )
     {
-        var username = request.Username.Trim();
-        var password = request.Password.Trim();
+        var username = (request.Username ?? "").Trim();
+        var password = (request.Password ?? "").Trim();
+
+        if (username.Length < 3 || username.Length > 50)
+        {
+            return BadRequest(new
+            {
+                message = "Kullanıcı adı 3 ile 50 karakter arasında olmalı"
+            });
+        }
+
+        if (password.Length < 6)
+        {
+            return BadRequest(new
+            {
+                message = "Şifre en az 6 karakter olmalı"
+            });
+        }
 
         var existingUser =
             _context.Users.FirstOrDefault(
