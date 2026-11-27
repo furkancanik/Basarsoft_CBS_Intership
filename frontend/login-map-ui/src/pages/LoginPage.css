@@ -118,9 +118,26 @@ body{
     border-radius:16px;
     padding-left:20px;
     font-size:18px;
+    color:#111827;
+    caret-color:#111827;
+    -webkit-text-fill-color:#111827;
     background:rgba(255,255,255,.88);
     box-shadow:0 4px 18px rgba(0,0,0,.18);
     transition:.25s;
+}
+
+.login-card input::placeholder{
+    color:#6b7280;
+    -webkit-text-fill-color:#6b7280;
+}
+
+/* Tarayıcının otomatik doldurduğu alanlarda da yazı siyah kalsın */
+.login-card input:-webkit-autofill,
+.login-card input:-webkit-autofill:hover,
+.login-card input:-webkit-autofill:focus{
+    -webkit-text-fill-color:#111827;
+    box-shadow:0 0 0 1000px rgba(255,255,255,.88) inset;
+    transition:background-color 9999s ease-in-out 0s;
 }
 
 .login-card input:focus{
